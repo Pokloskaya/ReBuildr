@@ -1,26 +1,37 @@
 import base64
-filename = "testdoc.docx"
-nfragments = int(input("Ingrese el numero de fragmentos que espera obtener del archivo "))
+import os
 
+filename = "testfile.txt"
+name, ext = os.path.splitext(filename)
+nfragments = int(input("Ingrese el numero de fragmentos que espera obtener del archivo "))
 
 def Fragmentador(filename, nfragments):
     file = open(filename, "rb")
-    #print(file.read())
     encodedString = base64.b64encode(file.read())
     lenFragments = len(encodedString) // nfragments
-    i=0
+    i = 0
     fragments = {}
     while i < nfragments:
-        if i == nfragments-1:
-            subs = encodedString[lenFragments*i:]    
+        if i == nfragments - 1:
+            subs = encodedString[lenFragments * i:]
         else:
-            subs = encodedString[lenFragments*i:lenFragments*(i+1)]
+            subs = encodedString[lenFragments * i: lenFragments * (i + 1)]
         fragments[i] = subs
-        
-        i+=1
-    
+        i += 1
     return fragments
 
-
 resultdict = Fragmentador(filename, nfragments)
-print(resultdict)
+
+def Reconstructor(resultdict):
+    reconstructed = b''
+    for i in range(nfragments):
+        reconstructed += resultdict[i]
+    reconstructed = base64.b64decode(reconstructed)
+    return reconstructed
+
+res = Reconstructor(resultdict)
+rdn = "Reconstructed_"+name+ext
+with open(rdn, "wb") as f:
+    f.write(res)
+
+print("Reconstructed document saved as '"+rdn+"'")
