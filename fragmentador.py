@@ -1,9 +1,19 @@
 import base64
 import os
+import json
 
 filename = "testfile.txt"
 name, ext = os.path.splitext(filename)
 nfragments = int(input("Ingrese el numero de fragmentos que espera obtener del archivo "))
+
+def organizador(fragments):
+    registro = {}
+    for i in range(nfragments):
+        registro[i] = str(fragments[i])
+
+    with open("registro.json", "w") as json_file:
+        json.dump(registro, json_file)
+
 
 def Fragmentador(filename, nfragments):
     file = open(filename, "rb")
@@ -18,9 +28,11 @@ def Fragmentador(filename, nfragments):
             subs = encodedString[lenFragments * i: lenFragments * (i + 1)]
         fragments[i] = subs
         i += 1
+    organizador(fragments)
     return fragments
 
 resultdict = Fragmentador(filename, nfragments)
+
 
 def Reconstructor(resultdict):
     reconstructed = b''
