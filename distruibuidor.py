@@ -1,5 +1,6 @@
 import socket
 import threading
+import json
 
 class Distribuidor:
     def __init__(self, fragmentos, receptores):
@@ -42,8 +43,18 @@ class Distribuidor:
 
 # Ejemplo de uso
 if __name__ == "__main__":
-    # Supongamos que tenemos una lista de fragmentos y una lista de receptores
-    fragmentos = ["fragmento1", "fragmento2", "fragmento3", "fragmento4", "fragmento5"]
+    fragmentos = []
+
+    with open("Fragments/"+"registro.json", "r") as fragmentJson:
+        data = json.load(fragmentJson)
+        
+        # Iterate through the keys in the JSON data
+        for key in data:
+            # Convert the value from bytes literal to a regular string
+            fragment = data[key].encode('utf-8').decode('unicode_escape')
+            fragmentos.append(fragment)
+
+    #fragmentos = ["fragmento1", "fragmento2", "fragmento3", "fragmento4", "fragmento5"]
     receptores = [("127.0.0.1", 5001), ("127.0.0.1", 5002), ("127.0.0.1", 5003)]
 
     distribuidor = Distribuidor(fragmentos, receptores)

@@ -32,7 +32,6 @@ class Receptor:
 
     def recibir_fragmento(self, client_socket):
         fragmento = client_socket.recv(1024).decode()
-
         # Almacenar el fragmento recibido
         self.fragmentos_recibidos.append(fragmento)
         print(f"Fragmento recibido en {self.host}:{self.port}: {fragmento}")
