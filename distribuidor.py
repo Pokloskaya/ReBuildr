@@ -37,7 +37,7 @@ class Distribuidor:
             # Enviar los fragmentos al receptor
             for fragmento in fragmentos_para_enviar:
                 sock.sendall(fragmento)
-                print(f"Fragmento enviado {fragmento}")
+                print(f"Fragmento enviado")
 
             # Cerrar la conexión
             sock.close()

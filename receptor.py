@@ -42,7 +42,6 @@ class Receptor:
         # Almacenar el fragmento recibido como bytes en la lista de fragmentos
         data= client.recv(1000000)
         fragmento= str(data.decode("utf-8"))
-        #print(f"Fragmento recibido: {fragmento}")
         elementos= fragmento.split(' ')
         newJson = {elementos[1]:elementos[2]}
         with open("Sockets_Fragments/" + elementos[1]+".json", "w") as json_file:

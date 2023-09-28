@@ -6,6 +6,7 @@ import threading
 import distribuidor as dist
 import constants
 import receptor as recep
+import shutil
 import time
 RED = "\033[91m"
 RESET = "\033[0m"
@@ -22,7 +23,8 @@ class Main:
     def organizar_fragmentos(self, fragments_dict):
         registro = {}
         for i in range(self.nFragments):
-            registro[i] = str(fragments_dict[i])
+            valuesRegistry = fragments_dict[i].split(b" ")
+            registro[i] = ["Sockets_Fragments/", str(valuesRegistry[1])+".json"]
 
         with open("Fragments/" + "registro.json", "w") as json_file:
             json.dump(registro, json_file)
@@ -42,7 +44,6 @@ class Main:
             self.fragments[i] = (self.fileName + " " + str(i) + " ").encode('utf-8') + subs
             i += 1
 
-        print(self.fragments)
         self.organizar_fragmentos(self.fragments)
 
     def enviar_fragmentos(self, receptores):
@@ -70,6 +71,10 @@ class Main:
             f.write(reconstructedString)
         print("Reconstructed document saved as '"+rdn+"'")
         return reconstructed
+    
+    def resetFolder(self):
+        shutil.rmtree("Sockets_Fragments/")
+        os.makedirs("Sockets_Fragments/")
 
 
 def main():
@@ -89,10 +94,13 @@ def main():
         print(f"{RED}Type of argument error:{RESET} <number of fragments> must be an integer")
         sys.exit(1)
 
+    
     server_instance = Main(fileName, ext, nFragments)
+    server_instance.resetFolder()
     res = server_instance.fragmentar_archivo()
 
-    receptores = constants.RECEPTORS
+    receptores = constants.defineSocketNum(nFragments)
+    print(receptores)
 
     # Iniciar receptores en hilos separados
     threads = []
@@ -108,12 +116,13 @@ def main():
 
     # Enviar fragmentos a los receptores
     server_instance.enviar_fragmentos(receptores)
+    time.sleep(1)
     server_instance.Reconstructor()
     # Esperar a que todos los hilos de receptores terminen
     # for thread in threads:
     #   thread.join()
-    # time.sleep(5)
     # Reconstruir el archivo después de que todos los hilos de los receptores hayan terminado
+
 
 
 if __name__ == '__main__':
