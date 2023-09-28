@@ -2,49 +2,87 @@ import base64
 import os
 import json
 import sys
+import socket
+import threading
+import distribuidor as dist
+import receptor as recep
+import time
 
-class server:
-
+class Server:
     def __init__(self, fileName, ext, nFragments):
         self.fileName = fileName
         self.ext = ext
         self.nFragments = nFragments
+        self.fragmentos = []
+        self.fragmentos_recibidos = []
+        self.received_count = 0
 
-    def organizador(self,fragmentsDict):
+    def organizar_fragmentos(self, fragments_dict):
         registro = {}
         for i in range(self.nFragments):
-            registro[i] = str(fragmentsDict[i])
+            registro[i] = str(fragments_dict[i])
 
-        with open("Fragments/"+"registro.json", "w") as json_file:
+        with open("Fragments/" + "registro.json", "w") as json_file:
             json.dump(registro, json_file)
 
-    def Fragmentador(self):
-        file = open("Files/"+self.fileName+self.ext, "rb")
-        encodedString = base64.b64encode(file.read())
-        lenFragments = len(encodedString) // self.nFragments
+    def fragmentar_archivo(self):
+        file = open("Files/" + self.fileName + self.ext, "rb")
+        encoded_string = base64.b64encode(file.read())
+        len_fragments = len(encoded_string) // self.nFragments
         i = 0
-        fragments = {}
+        self.fragments = {}
         while i < self.nFragments:
             if i == self.nFragments - 1:
-                subs = encodedString[lenFragments * i:]
+                subs = encoded_string[len_fragments * i:]
             else:
-                subs = encodedString[lenFragments * i: lenFragments * (i + 1)]
-            fragments[i] = subs
+                subs = encoded_string[len_fragments * i: len_fragments * (i + 1)]
+            self.fragments[i] = subs
             i += 1
 
-        print(fragments)
-        self.organizador(fragments)
-        return fragments    
+        print(self.fragments)
+        self.organizar_fragmentos(self.fragments)
 
-    def Reconstructor(self, resultdict):
+    def enviar_fragmentos(self, receptores):
+        distribuidor = dist.Distribuidor(self.fragments, receptores)
+        distribuidor.enviar_fragmentos()
+
+    def recibir_fragmentos(self, host, port):
+        receptor = recep.Receptor(host, port, self)  # Pasa la instancia del servidor como tercer argumento
+        receptor.iniciar()
+
+    # def reconstruir_archivo(self):
+    #     reconstructed = b''
+
+    #     # Obtén la lista de fragmentos recibidos del receptor
+    #     fragmentos_recibidos = self.fragmentos_recibidos
+
+    #     for i in range(self.nFragments):
+    #         if i < len(fragmentos_recibidos):
+    #             # Cambiar el índice i para obtener el fragmento recibido por el receptor
+    #             fragmento_recibido = fragmentos_recibidos[i]
+    #             reconstructed += base64.b64decode(fragmento_recibido)
+
+    #     rdn = "Reconstructed_" + self.fileName + self.ext
+    #     with open("ReconstructedFiles/" + rdn, "wb") as f:
+    #         f.write(reconstructed)
+    #     print("Documento reconstruido guardado como '" + rdn + "'")
+
+    def Reconstructor(self):
         reconstructed = b''
         for i in range(self.nFragments):
-            reconstructed += resultdict[i]
+            reconstructed += self.fragments[i]
         reconstructed = base64.b64decode(reconstructed)
+
+        rdn = "Reconstructed_"+self.fileName+self.ext
+        with open("ReconstructedFiles/"+rdn, "wb") as f:
+            f.write(reconstructed)
+
+        print("Reconstructed document saved as '"+rdn+"'")
         return reconstructed
+    
 
 def main():
-    if len(sys.argv)!=3:
+    if len(sys.argv) != 3:
         print(f"Uso: {sys.argv[0]} <fileName.extension> <number of fragments> ")
         sys.exit(1)
 
@@ -52,16 +90,31 @@ def main():
     nFragments = int(sys.argv[2])
     fileName, ext = os.path.splitext(fullName)
 
-    serverInit = server(fileName, ext, nFragments)
-    resultdict = serverInit.Fragmentador()
-    
-    #Reconstruct the file
-    res = serverInit.Reconstructor(resultdict)
-    rdn = "Reconstructed_"+fileName+ext
-    with open("RecontructedFiles/"+rdn, "wb") as f:
-        f.write(res)
+    server_instance = Server(fileName, ext, nFragments)
+    res=server_instance.fragmentar_archivo()
 
-    print("Reconstructed document saved as '"+rdn+"'")
+    receptores = [("127.0.0.1", 5001), ("127.0.0.1", 5002), ("127.0.0.1", 5003)]
+
+    # Iniciar receptores en hilos separados
+    threads = []
+    for receptor in receptores:
+        host, port = receptor
+        thread = threading.Thread(target=server_instance.recibir_fragmentos, args=(host, port))
+        thread.start()
+        threads.append(thread)
+
+    # Esperar a que los receptores estén listos
+    input("Presiona Enter cuando los receptores estén listos para recibir fragmentos...")
+
+    # Enviar fragmentos a los receptores
+    server_instance.enviar_fragmentos(receptores)
+    server_instance.Reconstructor()
+    # Esperar a que todos los hilos de receptores terminen
+    #for thread in threads:
+     #   thread.join()
+    #time.sleep(5)
+    # Reconstruir el archivo después de que todos los hilos de los receptores hayan terminado
+    
 
 if __name__ == '__main__':
     main()

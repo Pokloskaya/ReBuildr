@@ -15,7 +15,7 @@ class Distribuidor:
         for i, receptor in enumerate(self.receptores):
             inicio = i * fragmentos_por_receptor
             fin = (i + 1) * fragmentos_por_receptor if i < num_receptores - 1 else len(self.fragmentos)
-            fragmentos_para_enviar = self.fragmentos[inicio:fin]
+            fragmentos_para_enviar = fragmentos_para_enviar = list(self.fragmentos.values())[inicio:fin]
 
             # Iniciar un hilo para enviar los fragmentos a este receptor
             thread = threading.Thread(target=self.enviar_a_receptor, args=(receptor, fragmentos_para_enviar))
@@ -33,29 +33,11 @@ class Distribuidor:
 
             # Enviar los fragmentos al receptor
             for fragmento in fragmentos_para_enviar:
-                sock.sendall(fragmento.encode())
+                sock.sendall(fragmento)
+                print(f"Fragmento enviado {fragmento}")
 
             # Cerrar la conexión
             sock.close()
 
         except Exception as e:
             print(f"Error al enviar fragmentos a {host}:{port}: {str(e)}")
-
-# Ejemplo de uso
-if __name__ == "__main__":
-    fragmentos = []
-
-    with open("Fragments/"+"registro.json", "r") as fragmentJson:
-        data = json.load(fragmentJson)
-        
-        # Iterate through the keys in the JSON data
-        for key in data:
-            # Convert the value from bytes literal to a regular string
-            fragment = data[key].encode('utf-8').decode('unicode_escape')
-            fragmentos.append(fragment)
-
-    #fragmentos = ["fragmento1", "fragmento2", "fragmento3", "fragmento4", "fragmento5"]
-    receptores = [("127.0.0.1", 5001), ("127.0.0.1", 5002), ("127.0.0.1", 5003)]
-
-    distribuidor = Distribuidor(fragmentos, receptores)
-    distribuidor.enviar_fragmentos()
