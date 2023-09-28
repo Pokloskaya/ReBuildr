@@ -6,9 +6,11 @@ import threading
 import distribuidor as dist
 import constants
 import receptor as recep
+import time
+RED = "\033[91m"
+RESET = "\033[0m"
 
-
-class Server:
+class Main:
     def __init__(self, fileName, ext, nFragments):
         self.fileName = fileName
         self.ext = ext
@@ -52,33 +54,20 @@ class Server:
         receptor = recep.Receptor(host, port, self)
         receptor.iniciar()
 
-    # def reconstruir_archivo(self):
-    #     reconstructed = b''
-
-    #     # Obtén la lista de fragmentos recibidos del receptor
-    #     fragmentos_recibidos = self.fragmentos_recibidos
-
-    #     for i in range(self.nFragments):
-    #         if i < len(fragmentos_recibidos):
-    #             # Cambiar el índice i para obtener el fragmento recibido por el receptor
-    #             fragmento_recibido = fragmentos_recibidos[i]
-    #             reconstructed += base64.b64decode(fragmento_recibido)
-
-    #     rdn = "Reconstructed_" + self.fileName + self.ext
-    #     with open("ReconstructedFiles/" + rdn, "wb") as f:
-    #         f.write(reconstructed)
-    #     print("Documento reconstruido guardado como '" + rdn + "'")
-
     def Reconstructor(self):
-        reconstructed = b''
+        reconstructed = {}
+        time.sleep(5)
         for i in range(self.nFragments):
-            reconstructed += self.fragments[i]
-        reconstructed = base64.b64decode(reconstructed)
-
+            with open("Sockets_Fragments/"+str(i)+".json", "r") as fragmentJson:
+                data =json.load(fragmentJson)
+                reconstructed[i]=data[str(i)]
+        reconstructedString = ''  
+        for i in range(self.nFragments):
+            reconstructedString += reconstructed[i]
+        reconstructedString = base64.b64decode(reconstructedString)        
         rdn = "Reconstructed_"+self.fileName.split('/')[-1]+self.ext
         with open("ReconstructedFiles/"+rdn, "wb") as f:
-            f.write(reconstructed)
-
+            f.write(reconstructedString)
         print("Reconstructed document saved as '"+rdn+"'")
         return reconstructed
 
@@ -86,14 +75,21 @@ class Server:
 def main():
     if len(sys.argv) != 3:
         print(
-            f"Uso: {sys.argv[0]} <fileName.extension> <number of fragments> ")
+            f"{RED}Syntax command error{RESET}: {sys.argv[0]} <path/fileName.extension> <number of fragments> ")
+        sys.exit(1)
+    elif not os.path.exists(sys.argv[1]):
+        print(
+            f"{RED}Path for file doesn't exist:{RESET} {sys.argv[0]} <path/fileName.extension> incorrect")
+        sys.exit(1)
+    try:
+       fullName = sys.argv[1]
+       nFragments = int(sys.argv[2])
+       fileName, ext = os.path.splitext(fullName)
+    except ValueError:
+        print(f"{RED}Type of argument error:{RESET} <number of fragments> must be an integer")
         sys.exit(1)
 
-    fullName = sys.argv[1]
-    nFragments = int(sys.argv[2])
-    fileName, ext = os.path.splitext(fullName)
-
-    server_instance = Server(fileName, ext, nFragments)
+    server_instance = Main(fileName, ext, nFragments)
     res = server_instance.fragmentar_archivo()
 
     receptores = constants.RECEPTORS

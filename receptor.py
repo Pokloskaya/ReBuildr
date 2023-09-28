@@ -1,6 +1,6 @@
 import socket
 import threading
-
+import json
 
 class Receptor:
     def __init__(self, host, port, server):
@@ -38,10 +38,13 @@ class Receptor:
         # Cerrar el socket del servidor cuando termine la recepción de fragmentos
         self.server_socket.close()
 
-    def recibir_fragmento(self, fragmento):
+    def recibir_fragmento(self, client):
         # Almacenar el fragmento recibido como bytes en la lista de fragmentos
-        self.fragmentos.append(fragmento)
-
-        print(f"Fragmento recibido: {fragmento}")
-
+        data= client.recv(1000000)
+        fragmento= str(data.decode("utf-8"))
+        #print(f"Fragmento recibido: {fragmento}")
+        elementos= fragmento.split(' ')
+        newJson = {elementos[1]:elementos[2]}
+        with open("Sockets_Fragments/" + elementos[1]+".json", "w") as json_file:
+            json.dump(newJson, json_file)
         self.should_stop = True
