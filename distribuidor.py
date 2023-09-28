@@ -1,6 +1,6 @@
 import socket
 import threading
-import json
+
 
 class Distribuidor:
     def __init__(self, fragmentos, receptores):
@@ -14,11 +14,14 @@ class Distribuidor:
 
         for i, receptor in enumerate(self.receptores):
             inicio = i * fragmentos_por_receptor
-            fin = (i + 1) * fragmentos_por_receptor if i < num_receptores - 1 else len(self.fragmentos)
-            fragmentos_para_enviar = fragmentos_para_enviar = list(self.fragmentos.values())[inicio:fin]
+            fin = (i + 1) * fragmentos_por_receptor if i < num_receptores - \
+                1 else len(self.fragmentos)
+            fragmentos_para_enviar = fragmentos_para_enviar = list(
+                self.fragmentos.values())[inicio:fin]
 
             # Iniciar un hilo para enviar los fragmentos a este receptor
-            thread = threading.Thread(target=self.enviar_a_receptor, args=(receptor, fragmentos_para_enviar))
+            thread = threading.Thread(target=self.enviar_a_receptor, args=(
+                receptor, fragmentos_para_enviar))
             thread.start()
 
     def enviar_a_receptor(self, receptor, fragmentos_para_enviar):

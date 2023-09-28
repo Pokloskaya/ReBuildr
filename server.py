@@ -2,11 +2,11 @@ import base64
 import os
 import json
 import sys
-import socket
 import threading
 import distribuidor as dist
+import constants
 import receptor as recep
-import time
+
 
 class Server:
     def __init__(self, fileName, ext, nFragments):
@@ -26,7 +26,7 @@ class Server:
             json.dump(registro, json_file)
 
     def fragmentar_archivo(self):
-        file = open("Files/" + self.fileName + self.ext, "rb")
+        file = open(self.fileName + self.ext, "rb")
         encoded_string = base64.b64encode(file.read())
         len_fragments = len(encoded_string) // self.nFragments
         i = 0
@@ -35,8 +35,9 @@ class Server:
             if i == self.nFragments - 1:
                 subs = encoded_string[len_fragments * i:]
             else:
-                subs = encoded_string[len_fragments * i: len_fragments * (i + 1)]
-            self.fragments[i] = subs
+                subs = encoded_string[len_fragments *
+                                      i: len_fragments * (i + 1)]
+            self.fragments[i] = (self.fileName + " " + str(i) + " ").encode('utf-8') + subs
             i += 1
 
         print(self.fragments)
@@ -47,7 +48,8 @@ class Server:
         distribuidor.enviar_fragmentos()
 
     def recibir_fragmentos(self, host, port):
-        receptor = recep.Receptor(host, port, self)  # Pasa la instancia del servidor como tercer argumento
+        # Pasa la instancia del servidor como tercer argumento
+        receptor = recep.Receptor(host, port, self)
         receptor.iniciar()
 
     # def reconstruir_archivo(self):
@@ -73,17 +75,18 @@ class Server:
             reconstructed += self.fragments[i]
         reconstructed = base64.b64decode(reconstructed)
 
-        rdn = "Reconstructed_"+self.fileName+self.ext
+        rdn = "Reconstructed_"+self.fileName.split('/')[-1]+self.ext
         with open("ReconstructedFiles/"+rdn, "wb") as f:
             f.write(reconstructed)
 
         print("Reconstructed document saved as '"+rdn+"'")
         return reconstructed
-    
+
 
 def main():
     if len(sys.argv) != 3:
-        print(f"Uso: {sys.argv[0]} <fileName.extension> <number of fragments> ")
+        print(
+            f"Uso: {sys.argv[0]} <fileName.extension> <number of fragments> ")
         sys.exit(1)
 
     fullName = sys.argv[1]
@@ -91,15 +94,16 @@ def main():
     fileName, ext = os.path.splitext(fullName)
 
     server_instance = Server(fileName, ext, nFragments)
-    res=server_instance.fragmentar_archivo()
+    res = server_instance.fragmentar_archivo()
 
-    receptores = [("127.0.0.1", 5001), ("127.0.0.1", 5002), ("127.0.0.1", 5003)]
+    receptores = constants.RECEPTORS
 
     # Iniciar receptores en hilos separados
     threads = []
     for receptor in receptores:
         host, port = receptor
-        thread = threading.Thread(target=server_instance.recibir_fragmentos, args=(host, port))
+        thread = threading.Thread(
+            target=server_instance.recibir_fragmentos, args=(host, port))
         thread.start()
         threads.append(thread)
 
@@ -110,11 +114,11 @@ def main():
     server_instance.enviar_fragmentos(receptores)
     server_instance.Reconstructor()
     # Esperar a que todos los hilos de receptores terminen
-    #for thread in threads:
-     #   thread.join()
-    #time.sleep(5)
+    # for thread in threads:
+    #   thread.join()
+    # time.sleep(5)
     # Reconstruir el archivo después de que todos los hilos de los receptores hayan terminado
-    
+
 
 if __name__ == '__main__':
     main()
